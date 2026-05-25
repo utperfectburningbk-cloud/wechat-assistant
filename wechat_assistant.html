@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeChat 中国語アシスタント</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #07c160;
+    --green-dark: #059a4c;
+    --green-light: #e8f9ef;
+    --bg: #ededed;
+    --white: #ffffff;
+    --black: #1a1a1a;
+    --gray: #888;
+    --gray-light: #f5f5f5;
+    --border: #e0e0e0;
+    --red: #fa5151;
+    --shadow: 0 2px 12px rgba(0,0,0,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    background: #2d2d2d;
+    color: #fff;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-icon {
+    width: 36px; height: 36px;
+    background: var(--green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .header-info { flex: 1; }
+  .header-title { font-size: 16px; font-weight: 700; }
+  .header-sub { font-size: 11px; color: #aaa; margin-top: 1px; }
+  .header-status {
+    width: 10px; height: 10px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(7,193,96,0.3);
+  }
+
+  /* Tabs */
+  .tabs {
+    background: var(--white);
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 4px;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+
+  /* Content */
+  .content { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Cards */
+  .card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  .card-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+
+  /* Selects & Textareas */
+  select, textarea {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    transition: border 0.2s;
+    background: var(--gray-light);
+    color: var(--black);
+    resize: none;
+    appearance: none;
+  }
+  select:focus, textarea:focus { border-color: var(--green); background: #fff; }
+  textarea { line-height: 1.6; }
+
+  /* Tone chips */
+  .tone-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .chip.active { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
+
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-small {
+    width: auto;
+    padding: 7px 14px;
+    font-size: 12px;
+    border-radius: 8px;
+    background: var(--black);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 600;
+  }
+  .btn-small:hover { opacity: 0.8; }
+
+  /* Result box */
+  .result-card {
+    background: var(--green-light);
+    border: 1.5px solid #b2dfc6;
+    border-radius: 12px;
+    padding: 14px;
+    animation: fadeIn 0.3s ease;
+  }
+  .result-card.error {
+    background: #fff0f0;
+    border-color: #ffc0c0;
+  }
+  .result-tag {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--green-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .result-card.error .result-tag { color: var(--red); }
+  .result-main {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--black);
+    line-height: 1.5;
+    font-family: 'Noto Sans SC', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .result-alt {
+    font-size: 15px;
+    color: #444;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #c8e8d8;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+  .result-note {
+    font-size: 12px;
+    color: #555;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #c8e8d8;
+    line-height: 1.6;
+  }
+  .result-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: var(--green);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .spinner {
+    width: 20px; height: 20px;
+    border: 3px solid #ddd;
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* Reply options */
+  .reply-options { display: flex; flex-direction: column; gap: 8px; }
+  .reply-opt {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--gray-light);
+  }
+  .reply-opt:hover, .reply-opt.selected { border-color: var(--green); background: var(--green-light); }
+  .reply-opt-num { font-size: 10px; color: var(--gray); font-weight: 700; margin-bottom: 4px; }
+  .reply-opt-cn {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--black);
+    font-family: 'Noto Sans SC', sans-serif;
+    margin-bottom: 3px;
+  }
+  .reply-opt-jp { font-size: 12px; color: #666; }
+  .reply-opt-note {
+    font-size: 11px;
+    color: var(--green-dark);
+    font-weight: 600;
+    margin-top: 4px;
+    display: inline-block;
+    background: #fff;
+    border-radius: 6px;
+    padding: 2px 8px;
+  }
+
+  /* History */
+  .history-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .hbubble {
+    max-width: 82%;
+    padding: 10px 13px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .hbubble.me {
+    background: var(--green);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .hbubble.her {
+    background: var(--white);
+    color: var(--black);
+    align-self: flex-start;
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    box-shadow: var(--shadow);
+  }
+  .hbubble-sub { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+  .empty { text-align: center; color: #bbb; font-size: 13px; padding: 40px 20px; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--black);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 700;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+    white-space: nowrap;
+  }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🀄</div>
+  <div class="header-info">
+    <div class="header-title">中国語チャットアシスタント</div>
+    <div class="header-sub">WeChat サポート・AI翻訳</div>
+  </div>
+  <div class="header-status"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('send', this)">📤 送信文を作る</button>
+  <button class="tab" onclick="switchTab('receive', this)">📥 受信を訳す</button>
+  <button class="tab" onclick="switchTab('history', this)">🕐 履歴</button>
+</div>
+
+<!-- ===== 送信タブ ===== -->
+<div class="content" id="tab-send">
+
+  <div class="card">
+    <div class="card-label">📍 関係・文脈</div>
+    <select id="ctx">
+      <option value="">指定なし（汎用）</option>
+      <option value="初めて話す段階・まだ距離がある">初めて話す段階・距離がある</option>
+      <option value="少し仲良くなってきた・LINEやWeChatで連絡取り合う仲">仲良くなってきた・連絡取る仲</option>
+      <option value="友達以上の雰囲気がある・好意を感じている">友達以上の雰囲気・好意あり</option>
+      <option value="付き合っているかそれに近い関係">付き合っている・それに近い関係</option>
+      <option value="日常の雑談・特に深い意味はない">日常雑談・深い意味なし</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="card-label">🎨 トーン</div>
+    <div class="tone-wrap">
+      <button class="chip active" onclick="pickTone(this)">自然</button>
+      <button class="chip" onclick="pickTone(this)">甘め</button>
+      <button class="chip" onclick="pickTone(this)">カジュアル</button>
+      <button class="chip" onclick="pickTone(this)">丁寧</button>
+      <button class="chip" onclick="pickTone(this)">ロマンチック</button>
+      <button class="chip" onclick="pickTone(this)">少しふざけた</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">✍️ 日本語で入力</div>
+    <textarea id="jp-input" rows="4" placeholder="例：今日どこ行ってたの？写真かわいいね"></textarea>
+  </div>
+
+  <button class="btn btn-primary" id="send-btn" onclick="doTranslate()">✨ 中国語に変換する</button>
+
+  <div id="send-result"></div>
+</div>
+
+<!-- ===== 受信タブ ===== -->
+<div class="content" id="tab-receive" style="display:none">
+
+  <div class="card">
+    <div class="card-label">📋 相手の中国語を貼り付け</div>
+    <textarea id="cn-input" rows="5" placeholder="例：你今天怎么了？看起来不太对劲。" style="font-family:'Noto Sans SC',sans-serif;font-size:16px;"></textarea>
+  </div>
+
+  <button class="btn btn-primary" id="recv-btn" onclick="doReceive()">🔍 翻訳して返答を考える</button>
+
+  <div id="recv-result"></div>
+</div>
+
+<!-- ===== 履歴タブ ===== -->
+<div class="content" id="tab-history" style="display:none">
+  <div class="card">
+    <div class="card-label">📜 会話履歴</div>
+    <div class="history-wrap" id="history-list">
+      <div class="empty">まだ履歴がありません<br>送信・受信を使うと記録されます</div>
+    </div>
+  </div>
+  <button class="btn" style="background:#eee;color:#888;font-size:13px;" onclick="clearHistory()">🗑 履歴を消す</button>
+</div>
+
+<script>
+// ===== State =====
+let activeTone = '自然';
+let history = [];
+
+// ===== Tab =====
+function switchTab(name, el) {
+  ['send','receive','history'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ===== Tone =====
+function pickTone(el) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeTone = el.textContent.trim();
+}
+
+// ===== API =====
+async function callClaude(prompt) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.content[0].text;
+}
+
+// ===== 送信変換 =====
+async function doTranslate() {
+  const jp = document.getElementById('jp-input').value.trim();
+  if (!jp) { toast('日本語を入力してください'); return; }
+  const ctx = document.getElementById('ctx').value;
+  const btn = document.getElementById('send-btn');
+  const out = document.getElementById('send-result');
+  btn.disabled = true;
+  out.innerHTML = loadingHTML('変換中...');
+
+  const tone = {
+    '自然': '自然でフレンドリー、普通の友達に話すように',
+    '甘め': '少し甘くて好意が伝わる、ドキッとさせる',
+    'カジュアル': '軽くてくだけた感じ、絵文字も可',
+    '丁寧': '礼儀正しく、相手を立てる',
+    'ロマンチック': '詩的でロマンチック、気持ちが伝わる',
+    '少しふざけた': 'ちょっとふざけた冗談交じり',
+  }[activeTone] || '自然';
+
+  const prompt = `あなたは日中翻訳の専門家で、中国語ネイティブの感覚を熟知しています。
+
+以下を自然な中国語に翻訳してください：
+- 日本語: 「${jp}」
+- 関係・文脈: ${ctx || '不明'}
+- トーン: ${tone}
+
+以下のJSON形式のみで返してください（前置き・説明・コードブロック不要）：
+{"main":"メインの翻訳","alt":"少しニュアンスが違う別の言い方","note":"日本語でニュアンスや使い方のコツを2〜3文で"}`;
+
+  try {
+    const raw = await callClaude(prompt);
+    const data = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    out.innerHTML = `
+      <div class="result-card">
+        <div class="result-tag">✅ メイン翻訳</div>
+        <div class="result-main">${data.main}</div>
+        <div class="result-actions">
+          <button class="btn-small" onclick="copyText('${esc(data.main)}')">📋 コピー</button>
+        </div>
+        ${data.alt ? `
+        <div class="divider" style="margin-top:12px"></div>
+        <div class="result-tag" style="margin-top:10px;color:#666">🔄 別の表現</div>
+        <div class="result-alt">${data.alt}</div>
+        <div class="result-actions">
+          <button class="btn-small" onclick="copyText('${esc(data.alt)}')">📋 コピー</button>
+        </div>` : ''}
+        <div class="result-note">💡 ${data.note}</div>
+      </div>`;
+    addHistory('me', jp, data.main);
+  } catch(e) {
+    out.innerHTML = `<div class="result-card error"><div class="result-tag">エラー</div><div style="color:#c00;font-size:14px;">変換に失敗しました。もう一度お試しください。</div></div>`;
+  }
+  btn.disabled = false;
+}
+
+// ===== 受信翻訳 =====
+async function doReceive() {
+  const cn = document.getElementById('cn-input').value.trim();
+  if (!cn) { toast('中国語を貼り付けてください'); return; }
+  const btn = document.getElementById('recv-btn');
+  const out = document.getElementById('recv-result');
+  btn.disabled = true;
+  out.innerHTML = loadingHTML('解析中...');
+
+  const prompt = `あなたは中国語・日本語の翻訳とコミュニケーション支援の専門家です。
+
+以下の中国語メッセージを分析して：
+「${cn}」
+
+以下のJSON形式のみで返してください：
+{"translation":"自然な日本語訳","nuance":"ニュアンス・感情・意図の説明（2〜3文）","replies":[{"cn":"返答案1（中国語）","jp":"日本語訳","note":"トーンの特徴"},{"cn":"返答案2","jp":"日本語訳","note":"トーンの特徴"},{"cn":"返答案3","jp":"日本語訳","note":"トーンの特徴"}]}`;
+
+  try {
+    const raw = await callClaude(prompt);
+    const data = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const repliesHTML = data.replies.map((r,i) => `
+      <div class="reply-opt" onclick="selectReply(this,'${esc(r.cn)}')">
+        <div class="reply-opt-num">返答案 ${i+1}</div>
+        <div class="reply-opt-cn">${r.cn}</div>
+        <div class="reply-opt-jp">（${r.jp}）</div>
+        <div class="reply-opt-note">${r.note}</div>
+      </div>`).join('');
+
+    out.innerHTML = `
+      <div class="result-card">
+        <div class="result-tag">🈯 翻訳</div>
+        <div style="font-size:16px;font-weight:600;color:#1a1a1a;line-height:1.5;">${data.translation}</div>
+        <div class="result-note">💭 ${data.nuance}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">📝 返答案を選んでコピー</div>
+        <div class="reply-options">${repliesHTML}</div>
+        <div id="selected-area" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+          <div class="card-label">選択中</div>
+          <div id="selected-cn" style="font-size:16px;font-weight:700;font-family:'Noto Sans SC',sans-serif;margin-bottom:8px;"></div>
+          <button class="btn-small" onclick="copySelected()">📋 コピーしてWeChatへ貼り付け</button>
+        </div>
+      </div>`;
+    addHistory('her', cn, data.translation);
+  } catch(e) {
+    out.innerHTML = `<div class="result-card error"><div class="result-tag">エラー</div><div style="color:#c00;font-size:14px;">解析に失敗しました。もう一度お試しください。</div></div>`;
+  }
+  btn.disabled = false;
+}
+
+let _selectedCn = '';
+function selectReply(el, cn) {
+  document.querySelectorAll('.reply-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _selectedCn = cn;
+  document.getElementById('selected-area').style.display = '';
+  document.getElementById('selected-cn').textContent = cn;
+}
+function copySelected() { copyText(_selectedCn); }
+
+// ===== History =====
+function addHistory(who, original, translated) {
+  history.push({ who, original, translated, time: new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) });
+  renderHistory();
+}
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!history.length) {
+    el.innerHTML = '<div class="empty">まだ履歴がありません<br>送信・受信を使うと記録されます</div>';
+    return;
+  }
+  el.innerHTML = history.map(h => `
+    <div class="hbubble ${h.who}">
+      <div style="font-family:'Noto Sans SC','Noto Sans JP',sans-serif;">${h.who === 'me' ? h.translated : h.original}</div>
+      <div class="hbubble-sub">${h.who === 'me' ? '元：'+h.original : '訳：'+h.translated} · ${h.time}</div>
+    </div>`).join('');
+}
+function clearHistory() {
+  if (!history.length) return;
+  history = [];
+  renderHistory();
+  toast('履歴を削除しました');
+}
+
+// ===== Helpers =====
+function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
+
+function copyText(t) {
+  navigator.clipboard.writeText(t).then(() => toast('✅ コピーしました！'));
+}
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2000);
+}
+
+function loadingHTML(msg) {
+  return `<div class="card loading"><div class="spinner"></div>${msg}</div>`;
+}
+</script>
+</body>
+</html>
